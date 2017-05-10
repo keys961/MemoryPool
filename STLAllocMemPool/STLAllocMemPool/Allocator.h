@@ -17,9 +17,6 @@ namespace Allocator_MemPool
 		typedef size_t size_type;
 		typedef ptrdiff_t difference_type;
 
-		//typedef true_type propagate_on_container_move_assignment;
-		//typedef true_type is_always_equal;
-
 		Allocator() noexcept
 		{
 			blockPtr = positionPtr = freeNode = lastPosition = NULL;	
@@ -31,13 +28,7 @@ namespace Allocator_MemPool
 		~Allocator()
 		{
 			//Release block
-			position_ptr current = blockPtr, next;
-			while (current)
-			{
-				next = current->next;
-				::operator delete(reinterpret_cast<void*>(current));
-				current = next;
-			}
+			releaseMem();
 		}
 		//Rebind
 		template <class U> Allocator(const Allocator<U>& allocator)
@@ -49,7 +40,7 @@ namespace Allocator_MemPool
 			typedef Allocator<U> other;
 		};
 		//Get address
-		pointer address(reference _Val) const noexcept
+		inline pointer address(reference _Val) const noexcept
 		{
 			return &_Val;
 		}
@@ -58,7 +49,7 @@ namespace Allocator_MemPool
 			return &_Val;
 		}
 		//Alloc/Dealloc
-		inline void deallocate(pointer _Ptr, size_type _Count = 1)
+		inline void deallocate(pointer _Ptr, size_type _Count)
 		{
 			if (_Ptr)
 			{
@@ -76,17 +67,18 @@ namespace Allocator_MemPool
 				exit(1);
 			}
 			return tmp;*/
-			pointer res;
-			if (freeNode != 0)//First use free node
+			pointer res = 0;
+			if (freeNode)//First use free node
 			{
 				res = reinterpret_cast<pointer>(freeNode);
 				freeNode = freeNode->next;
 			}
 			else
 			{
-				if (positionPtr >= lastPosition)
+				if (lastPosition <= positionPtr)
 					allocateMem();
-				res = reinterpret_cast<pointer>(positionPtr++);
+				res = reinterpret_cast<pointer>(positionPtr);
+				positionPtr++;
 			}
 			return res;
 		}
@@ -117,6 +109,10 @@ namespace Allocator_MemPool
 		}
 
 		//Mem pool
+		
+
+	private:
+		size_type blockSize = 1024;
 		union Position
 		{
 			value_type element;
@@ -133,26 +129,34 @@ namespace Allocator_MemPool
 		position_ptr freeNode = 0;//free list
 		position_ptr lastPosition = 0;//last postion
 
-	private:
-		int blockSize = 2048;
 		void allocateMem()
 		{
 			//int blockSize = 4096;//1 block size
-			data_ptr newBlock = reinterpret_cast<data_ptr>(::operator new(blockSize));
-			reinterpret_cast<block_ptr>(newBlock)->next = blockPtr;
-			blockPtr = reinterpret_cast<block_ptr>(newBlock);//new block
+			data_ptr newBlock = reinterpret_cast<data_ptr>(::operator new(blockSize));//new block
+			reinterpret_cast<position_ptr>(newBlock)->next = blockPtr;//link
+			blockPtr = reinterpret_cast<block_ptr>(newBlock);//change block
 
-															 //calculate padding
-			data_ptr offset = newBlock + sizeof(position_ptr);
-			size_type result = reinterpret_cast<size_type>(offset);
+			//calculate padding
+			data_ptr body = newBlock + sizeof(position_ptr);
+			size_type result = reinterpret_cast<size_type>(body);
 			size_type align = sizeof(position_type);
 			size_type padding = (align - result) % align;
 
-			positionPtr = reinterpret_cast<position_ptr>(offset + padding);
+			positionPtr = reinterpret_cast<position_ptr>(body + padding);
 			lastPosition = reinterpret_cast<position_ptr>(newBlock + blockSize
 				- sizeof(position_type) + 1);
 		}
 		
+		void releaseMem()
+		{
+			position_ptr current = blockPtr, nextPtr;
+			while (current)
+			{
+				nextPtr = current->next;
+				::operator delete(reinterpret_cast<void*>(current));
+				current = nextPtr;
+			}
+		}
 		//void operator=(const Allocator&) {}
 
 	};
