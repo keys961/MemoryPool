@@ -1,6 +1,8 @@
 #pragma once
 #include <iostream>
 
+using namespace std;
+
 namespace Allocator_MemPool
 {
 
@@ -112,7 +114,7 @@ namespace Allocator_MemPool
 		
 
 	private:
-		size_type blockSize = 1024;
+		size_type blockSize = 4096;
 		union Position
 		{
 			value_type element;
@@ -132,12 +134,14 @@ namespace Allocator_MemPool
 		void allocateMem()
 		{
 			//int blockSize = 4096;//1 block size
-			data_ptr newBlock = reinterpret_cast<data_ptr>(::operator new(blockSize));//new block
-			reinterpret_cast<position_ptr>(newBlock)->next = blockPtr;//link
-			blockPtr = reinterpret_cast<block_ptr>(newBlock);//change block
+			void* newPtr = ::operator new(blockSize);
+			memset(newPtr, 0, blockSize);
+			block_ptr newBlock = reinterpret_cast<block_ptr>(newPtr);//new block
+			newBlock->next = blockPtr;//link, add it to the top
+			blockPtr = newBlock;//change block to the top
 
 			//calculate padding
-			data_ptr body = newBlock + sizeof(position_ptr);
+			data_ptr body = reinterpret_cast<data_ptr>(newBlock) + sizeof(position_ptr);
 			size_type result = reinterpret_cast<size_type>(body);
 			size_type align = sizeof(position_type);
 			size_type padding = (align - result) % align;
