@@ -13,16 +13,17 @@ using std::endl;
 
 int main()
 {
+	
 	//Allocator_MemPool::Allocator<int> test1;
-	std::vector<int, Allocator_MemPool::Allocator<int> > vect;
-	for (int i = 0; i < 40; i++)
+	std::list<int/*, Allocator_MemPool::Allocator<int> */> vect;
+	for (int i = 1; i < 104; i++)
 		vect.push_back(i);
-	for (int i = 0; i < 40; i++)
+	for (int i = 50; i < 104; i++)
 	{
 		//int x;
 		//x = vect.top();
-		std::cout << vect.back() << endl;
-		vect.pop_back();
+		cout << vect.front() << endl;
+		vect.pop_front();
 	}
 	system("pause");
 	return 0;

@@ -1,8 +1,4 @@
 #pragma once
-#include <iostream>
-
-using namespace std;
-
 namespace Allocator_MemPool
 {
 
@@ -23,9 +19,17 @@ namespace Allocator_MemPool
 		{
 			blockPtr = positionPtr = freeNode = lastPosition = NULL;	
 		}
-		Allocator(const Allocator& allocator) noexcept
+		Allocator(const Allocator& allocator) noexcept : Allocator()
 		{
-			Allocator();
+			
+		}
+		Allocator(const Allocator&& allocator) noexcept
+		{
+			blockPtr = allocator.blockPtr;
+			positionPtr = allocator.positionPtr;
+			lastPosition = allocator.lastPosition;
+			freeNode = allocator.freeNode;
+			allocator.blockPtr = nullptr;
 		}
 		~Allocator()
 		{
@@ -33,14 +37,26 @@ namespace Allocator_MemPool
 			releaseMem();
 		}
 		//Rebind
-		template <class U> Allocator(const Allocator<U>& allocator)
+		template <class U> Allocator(const Allocator<U>& allocator) noexcept: Allocator()
 		{
-			Allocator();
+			
 		}
 		template <class U> struct rebind
 		{
 			typedef Allocator<U> other;
 		};
+
+		Allocator<T>& operator=(Allocator&& allocator) noexcept
+		{
+			if (this != &allocator)
+			{
+				std::swap(blockPtr, allocator.blockPtr);
+				positionPtr = allocator.positionPtr;
+				lastPosition = allocator.lastPosition;
+				freeNode = allocator.freeNode;
+			}
+			return *this;
+		}
 		//Get address
 		inline pointer address(reference _Val) const noexcept
 		{
@@ -60,7 +76,7 @@ namespace Allocator_MemPool
 				freeNode = deletePtr;//note free as head
 			}
 		}
-		inline pointer allocate(size_type _Count, pointer _Ptr = 0)
+		inline pointer allocate(size_type _Count)
 		{
 			/*pointer tmp = (pointer)(::operator new((size_t)(((difference_type)_Count) * sizeof(T))));
 			if (tmp == 0)
@@ -70,7 +86,7 @@ namespace Allocator_MemPool
 			}
 			return tmp;*/
 			pointer res = 0;
-			if (freeNode)//First use free node
+			if (freeNode != nullptr)//First use free node
 			{
 				res = reinterpret_cast<pointer>(freeNode);
 				freeNode = freeNode->next;
@@ -84,37 +100,26 @@ namespace Allocator_MemPool
 			}
 			return res;
 		}
-
-		void destroy(pointer _Ptr)//destruct obj on mem
+		template <class U> void destroy(U* _Ptr)//destruct obj on mem
 		{
-			_Ptr->~value_type();
+			_Ptr->~U();
 		}
-		void construct(pointer _Ptr, const_reference _Arg)//construct obj on mem
+		template <class U, class... Args> void construct(U* _Ptr, Args&&... _Args)//construct obj on mem
 		{
-			new(_Ptr) value_type(_Arg);
+			new(_Ptr) U(std::forward<Args>(_Args)...);
 		}
 
 		inline size_type max_size() const
 		{
-			size_type maxSize = UINT_MAX / blockSize;
+			size_type maxSize = -1 / blockSize;
 			return
 				(blockSize - sizeof(data_ptr)) / sizeof(position_ptr) * maxSize;
 		}
-
-		inline bool operator==(const Allocator<T>&)
-		{
-			return true;
-		}
-		inline bool operator!=(const Allocator<T>&)
-		{
-			return false;
-		}
-
 		//Mem pool
 		
 
 	private:
-		size_type blockSize = 4096;
+		size_type blockSize;
 		union Position
 		{
 			value_type element;
@@ -133,17 +138,18 @@ namespace Allocator_MemPool
 
 		void allocateMem()
 		{
+			blockSize = 2048;
 			//int blockSize = 4096;//1 block size
 			void* newPtr = ::operator new(blockSize);
-			memset(newPtr, 0, blockSize);
+			//memset(newPtr, 0, blockSize);
 			block_ptr newBlock = reinterpret_cast<block_ptr>(newPtr);//new block
 			newBlock->next = blockPtr;//link, add it to the top
 			blockPtr = newBlock;//change block to the top
 
 			//calculate padding
 			data_ptr body = reinterpret_cast<data_ptr>(newBlock) + sizeof(position_ptr);
-			size_type result = reinterpret_cast<size_type>(body);
-			size_type align = sizeof(position_type);
+			uintptr_t result = reinterpret_cast<uintptr_t>(body);
+			size_type align = alignof(position_type);
 			size_type padding = (align - result) % align;
 
 			positionPtr = reinterpret_cast<position_ptr>(body + padding);
