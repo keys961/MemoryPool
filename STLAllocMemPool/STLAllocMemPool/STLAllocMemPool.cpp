@@ -15,9 +15,9 @@ int main()
 {
 	
 	//Allocator_MemPool::Allocator<int> test1;
-	std::list<int/*, Allocator_MemPool::Allocator<int> */> vect;
+	std::list<int, Allocator_MemPool::Allocator<int> > vect;
 	for (int i = 1; i < 104; i++)
-		vect.push_back(i);
+		vect.push_front(i);
 	for (int i = 50; i < 104; i++)
 	{
 		//int x;

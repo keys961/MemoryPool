@@ -163,7 +163,7 @@ namespace Allocator_MemPool
 			while (current)
 			{
 				nextPtr = current->next;
-				::operator delete(reinterpret_cast<void*>(current));
+				operator delete(reinterpret_cast<void*>(current));
 				current = nextPtr;
 			}
 		}
