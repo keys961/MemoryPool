@@ -15,15 +15,14 @@ int main()
 {
 	
 	//Allocator_MemPool::Allocator<int> test1;
-	std::list<int, Allocator_MemPool::Allocator<int> > vect;
+	std::vector<int, Allocator_MemPool::Allocator<int> > vect;
 	for (int i = 1; i < 104; i++)
-		vect.push_front(i);
+		vect.push_back(i);
 	for (int i = 50; i < 104; i++)
 	{
 		//int x;
 		//x = vect.top();
-		cout << vect.front() << endl;
-		vect.pop_front();
+		cout << vect[i] << endl;
 	}
 	system("pause");
 	return 0;
