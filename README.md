@@ -1,2 +1,3 @@
 # MemoryPool
-OOP Final Project
+
+### A STL allocator with memory pool.
